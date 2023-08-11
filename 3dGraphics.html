@@ -16,10 +16,17 @@
     // Create a cube
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const floorMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
+    const floorMaterial = new THREE.LineBasicMaterial( {
+	    color: 0x0000ff,
+	    linewidth: 10,
+	    linecap: 'round', //ignored by WebGLRenderer
+	    linejoin:  'round' //ignored by WebGLRenderer
+    } );
     const cube = new THREE.Mesh(geometry, material);
     var floorCube = [];
     scene.add(cube);
+    const light = new THREE.AmbientLight( 0x404040 ); // soft white light
+    scene.add( light );
 
     for (var x = 0; x < 10; ++x) {
 
@@ -45,31 +52,37 @@
     camera.position.z = 8;
     camera.position.y = 4;
 
+    cube.add(camera);
 
-    function movePlayer(upKey,downKey,leftKey,rightKey) {
+
+    function movePlayerUpDown(upKey,downKey) {
 
       document.addEventListener("keydown", function(event) {
         switch (event.keyCode) {
           case upKey:
             cube.position.z -= 0.0002;
-            camera.position.z -= 0.0002;
             
             break;
           case downKey:
             cube.position.z += 0.0002;
-            camera.position.z += 0.0002;
             
             break;
+        }
+      });
+    }
+
+    function movePlayerLeftRight(leftKey,rightKey) {
+
+      document.addEventListener("keydown", function(event) {
+        switch (event.keyCode) {
 
           case leftKey:
-            cube.position.x -= 0.0002;
-            camera.position.x -= 0.0002;
+            cube.rotation.y += 0.0002;
+            
             
             break;
-
           case rightKey:
-            cube.position.x += 0.0002;
-            camera.position.x += 0.0002;
+            cube.rotation.y -= 0.0002;
             
             break;
         }
@@ -81,17 +94,22 @@
     // Rendering loop
     function animate() {
 
-      movePlayer(87, 83, 65, 68);
+      movePlayerUpDown(87, 83);
+
+      movePlayerLeftRight(65, 68);
 
       requestAnimationFrame(animate);
     
-
       // Render the scene
       renderer.render(scene, camera);
+
+      
+      
     }
 
     // Start the animation loop
     animate();
   </script>
 </body>
+
 </html>
