@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>3D RPG with Three.js</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const floorMaterial = new THREE.LineBasicMaterial({
+      color: 0x0000ff,
+      linewidth: 10,
+      linecap: 'round',
+      linejoin: 'round'
+    });
+
+    const playerCube = new THREE.Mesh(geometry, material);
+    const projectiles = [];
+    const enemies = [];
+    let enemiesDestroyed = 0;
+
+    const floorCubes = [];
+    for (var x = 0; x < 10; ++x) {
+      floorCubes[x] = [];
+      for (var z = 0; z < 10; ++z) {
+        floorCubes[x][z] = new THREE.Mesh(geometry, floorMaterial);
+        floorCubes[x][z].position.x = x * 1.05;
+        floorCubes[x][z].position.z = z * 1.05;
+        scene.add(floorCubes[x][z]);
+      }
+    }
+
+    camera.position.z = 8;
+    camera.position.y = 4;
+    playerCube.add(camera);
+    playerCube.position.y = 1.5; // Lift the player above the ground
+    scene.add(playerCube);
+
+    function shootProjectile() {
+      const projectile = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffff00 })); // Yellow for projectiles
+      projectile.position.copy(playerCube.position);
+      projectile.rotation.copy(playerCube.rotation);
+      scene.add(projectile);
+      projectiles.push(projectile);
+    }
+
+    function spawnEnemy() {
+      const enemy = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xff0000 })); // Red for enemies
+      enemy.position.set(
+        Math.random() * 10 - 5, // Random X position
+        2,                      // Y position above the ground
+        Math.random() * -10    // Random Z position outside the floor area
+      );
+      scene.add(enemy);
+      enemies.push(enemy);
+    }
+
+    function updateEnemies() {
+      const moveSpeed = 0.05; // Adjust as needed
+      for (const enemy of enemies) {
+        const direction = new THREE.Vector3();
+        direction.subVectors(playerCube.position, enemy.position).normalize();
+        enemy.position.add(direction.multiplyScalar(moveSpeed));
+      }
+    }
+
+    document.addEventListener('keydown', function(event) {
+      const moveSpeed = 0.1; // Adjust as needed
+      const rotationSpeed = 0.05; // Adjust as needed
+
+      switch (event.keyCode) {
+        case 87: // W key
+          const direction = new THREE.Vector3();
+          camera.getWorldDirection(direction);
+          direction.multiplyScalar(moveSpeed);
+          playerCube.position.add(direction);
+          break;
+        case 83: // S key
+          const backDirection = new THREE.Vector3();
+          camera.getWorldDirection(backDirection);
+          backDirection.multiplyScalar(-moveSpeed);
+          playerCube.position.add(backDirection);
+          break;
+        case 65: // A key
+          playerCube.rotation.y += rotationSpeed;
+          break;
+        case 68: // D key
+          playerCube.rotation.y -= rotationSpeed;
+          break;
+        case 70: // F key
+          shootProjectile();
+          break;
+      }
+    });
+
+    function checkCollisions() {
+      for (const enemy of enemies) {
+        for (const projectile of projectiles) {
+          if (projectile.position.distanceTo(enemy.position) < 0.5) {
+            scene.remove(projectile);
+            projectiles.splice(projectiles.indexOf(projectile), 1);
+            scene.remove(enemy);
+            enemies.splice(enemies.indexOf(enemy), 1);
+            enemiesDestroyed++;
+            updateEnemiesDestroyedCounter();
+          }
+        }
+      }
+    }
+
+    function updateEnemiesDestroyedCounter() {
+      const counterElement = document.getElementById('enemiesDestroyedCounter');
+      if (counterElement) {
+        counterElement.innerText = `Enemies Destroyed: ${enemiesDestroyed}`;
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (Math.random() < 0.005) { // Adjust spawn rate as needed
+        spawnEnemy();
+      }
+
+      updateEnemies();
+      checkCollisions();
+
+      // Update projectile positions
+      for (const projectile of projectiles) {
+        projectile.translateZ(-0.1);
+        if (projectile.position.z < -5) {
+          projectiles.splice(projectiles.indexOf(projectile), 1);
+          scene.remove(projectile);
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    updateEnemiesDestroyedCounter();
+    animate();
+  </script>
+  <div id="enemiesDestroyedCounter" style="position: absolute; top: 10px; left: 10px; color: white;">Enemies Destroyed: 0</div>
+</body>
+</html>
